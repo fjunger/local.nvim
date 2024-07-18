@@ -49,6 +49,7 @@ function M.setup(options)
     autoload = true,
     verbose = true,
   }, options or {})
+  vim.g.did_setup_local = true
 end
 
 return M
