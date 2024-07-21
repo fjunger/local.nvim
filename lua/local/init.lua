@@ -1,47 +1,45 @@
 local M = {}
 
 function M.load()
-  vim.api.nvim_create_autocmd({ "BufWinEnter" },
-    {
-      pattern = vim.fs.joinpath(vim.fn.expand("%:p:h"), "**/*"),
-      callback = function()
-        local home = vim.uv.os_homedir()
-        local dir = vim.fn.expand("%:p:h")
+  local home = vim.uv.os_homedir()
+  local dir = vim.uv.cwd()
+  local sources = {}
+  local next = dir
+  local root_checkpoint = false
 
-        local sources = {}
-        local next = dir
-        local root_checkpoint = false
-
-        repeat
-          -- check for source files
-          for _, file in pairs(M.options.file) do
-            local target = vim.fs.joinpath(next, file)
-            if vim.uv.fs_stat(target) then
-              table.insert(sources, 1, target)
-            end
-          end
-
-          -- check root markers
-          for _, root in pairs(M.options.root) do
-            if vim.uv.fs_stat(vim.fs.joinpath(next, root)) then
-              root_checkpoint = true
-              break
-            end
-          end
-
-          dir = next
-          next = vim.uv.fs_realpath(vim.fs.joinpath(next, '..'))
-        until (dir <= home) or root_checkpoint
-
-        for _, source in pairs(sources) do
-          if M.options.verbose then
-            vim.notify("Local: " .. source)
-          end
-          vim.cmd.source(source)
-        end
+  repeat
+    -- check for source files
+    for _, file in pairs(M.options.file) do
+      local target = vim.fs.joinpath(next, file)
+      if vim.uv.fs_stat(target) then
+        table.insert(sources, 1, target)
       end
-    }
-  )
+    end
+
+    -- check root markers
+    for _, root in pairs(M.options.root) do
+      if vim.uv.fs_stat(vim.fs.joinpath(next, root)) then
+        root_checkpoint = true
+        break
+      end
+    end
+
+    dir = next next = vim.uv.fs_realpath(vim.fs.joinpath(next, '..'))
+  until (dir <= home) or root_checkpoint
+
+  for _, source in pairs(sources) do
+    if M.options.verbose then
+      vim.notify("Local: " .. source)
+    end
+
+    vim.api.nvim_create_autocmd('BufWinEnter', {
+      pattern = vim.fs.joinpath(vim.fs.dirname(source), "**/*"),
+      callback = function()
+        vim.cmd.source(source)
+      end
+    })
+
+  end
 end
 
 ---@class SetupOptions
