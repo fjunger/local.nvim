@@ -3,6 +3,7 @@ local M = {}
 function M.load()
   vim.api.nvim_create_autocmd({ "BufWinEnter" },
     {
+      pattern = vim.fs.joinpath(vim.fn.expand("%:p:h"), "**/*"),
       callback = function()
         local home = vim.uv.os_homedir()
         local dir = vim.fn.expand("%:p:h")
