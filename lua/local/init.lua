@@ -28,13 +28,12 @@ function M.load()
   until (dir <= home) or root_checkpoint
 
   for _, source in pairs(sources) do
-    if M.options.verbose then
-      vim.notify("Local: " .. source)
-    end
-
     vim.api.nvim_create_autocmd('BufWinEnter', {
       pattern = vim.fs.joinpath(vim.fs.dirname(source), "**/*"),
       callback = function()
+        if M.options.verbose then
+          vim.notify("Local: " .. source)
+        end
         vim.cmd.source(source)
       end
     })
