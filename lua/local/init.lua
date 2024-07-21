@@ -1,7 +1,7 @@
 local M = {}
 
 function M.load()
-  vim.api.nvim_create_autocmd({ "BufEnter", "BufWinEnter" },
+  vim.api.nvim_create_autocmd({ "BufWinEnter" },
     {
       callback = function()
         local home = vim.uv.os_homedir()
