@@ -1,44 +1,52 @@
 local M = {}
 
 function M.load()
-  local home = vim.uv.os_homedir()
-  local dir = vim.uv.cwd()
-  local sources = {}
-  local next = dir
-  local root_checkpoint = false
 
-  repeat
-    -- check for source files
-    for _, file in pairs(M.options.file) do
-      local target = vim.fs.joinpath(next, file)
-      if vim.uv.fs_stat(target) then
-        table.insert(sources, 1, target)
+  vim.api.nvim_create_autocmd('FileType', {
+    pattern = M.options.filetype,
+    callback = function()
+      local bufnr = vim.api.nvim_get_current_buf()
+      local winnr = vim.api.nvim_get_current_win()
+      local tabnr = vim.api.nvim_get_current_tabpage()
+      local filename = vim.api.nvim_buf_get_name(bufnr)
+      local cwd = vim.fn.getcwd(winnr, tabnr)
+      local begin = ""
+      local files = {}
+      local root = cwd
+
+      if #filename > 0 then
+        begin = filename
+      else
+        begin = vim.fs.joinpath(cwd, '.')
       end
-    end
 
-    -- check root markers
-    for _, root in pairs(M.options.root) do
-      if vim.uv.fs_stat(vim.fs.joinpath(next, root)) then
-        root_checkpoint = true
-        break
-      end
-    end
-
-    dir = next next = vim.uv.fs_realpath(vim.fs.joinpath(next, '..'))
-  until (dir <= home) or root_checkpoint
-
-  for _, source in pairs(sources) do
-    vim.api.nvim_create_autocmd('BufWinEnter', {
-      pattern = vim.fs.joinpath(vim.fs.dirname(source), "**/*"),
-      callback = function()
-        if M.options.verbose then
-          vim.notify("Local: " .. source)
+      for _, mark in ipairs(M.options.root) do
+        local path = vim.fs.root(begin, mark)
+        if path ~= nil and #path > 0 then
+          root = path
+          break
         end
-        vim.cmd.source(source)
       end
-    })
 
-  end
+      for dir in vim.fs.parents(begin) do
+        for _, file in ipairs(M.options.file) do
+          local path = vim.fs.joinpath(dir, file)
+          if vim.fn.filereadable(path) == 1 then
+            table.insert(files, 1, path)
+          end
+        end
+
+        if dir == root then
+          break
+        end
+      end
+
+      for _, file in ipairs(files) do
+        vim.cmd.source(file)
+      end
+
+    end
+  })
 end
 
 ---@class SetupOptions
@@ -52,8 +60,9 @@ function M.setup(options)
   M.options = vim.tbl_extend('force', {
     root = { '.git' },
     file = { '.local.lua', '.local.vim' },
+    filetype = 'cpp',
     autoload = true,
-    verbose = true,
+    verbose = false,
   }, options or {})
   vim.g.did_setup_local = true
 end
