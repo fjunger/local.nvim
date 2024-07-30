@@ -1,50 +1,29 @@
 local M = {}
 
 function M.load()
-
-  vim.api.nvim_create_autocmd('FileType', {
-    pattern = M.options.filetype,
+  vim.api.nvim_create_autocmd('BufEnter', {
     callback = function()
       local bufnr = vim.api.nvim_get_current_buf()
-      local winnr = vim.api.nvim_get_current_win()
-      local tabnr = vim.api.nvim_get_current_tabpage()
-      local filename = vim.api.nvim_buf_get_name(bufnr)
-      local cwd = vim.fn.getcwd(winnr, tabnr)
-      local begin = ""
-      local files = {}
-      local root = cwd
+      local bufname = vim.api.nvim_buf_get_name(bufnr)
+      local bufdir = vim.fs.dirname(bufname)
+      local rootdir = vim.fs.root(bufdir, M.options.root) or bufdir
 
-      if #filename > 0 then
-        begin = filename
-      else
-        begin = vim.fs.joinpath(cwd, '.')
-      end
+      local matches = vim.fs.find(M.options.file, {
+        path = rootdir,
+        stop = bufdir,
+        upward = false,
+        type = 'file',
+        limit = math.huge,
+      })
 
-      for _, mark in ipairs(M.options.root) do
-        local path = vim.fs.root(begin, mark)
-        if path ~= nil and #path > 0 then
-          root = path
-          break
+      for _, file in ipairs(matches) do
+        if M.options.verbose then
+          vim.notify("local.nvim: trying to source " .. file, vim.log.levels.DEBUG)
+        end
+        if not pcall(vim.cmd.source, file) then
+          vim.notify("local.nvim: failed to source " .. file, vim.log.levels.ERROR)
         end
       end
-
-      for dir in vim.fs.parents(begin) do
-        for _, file in ipairs(M.options.file) do
-          local path = vim.fs.joinpath(dir, file)
-          if vim.fn.filereadable(path) == 1 then
-            table.insert(files, 1, path)
-          end
-        end
-
-        if dir == root then
-          break
-        end
-      end
-
-      for _, file in ipairs(files) do
-        vim.cmd.source(file)
-      end
-
     end
   })
 end
@@ -60,7 +39,6 @@ function M.setup(options)
   M.options = vim.tbl_extend('force', {
     root = { '.git' },
     file = { '.local.lua', '.local.vim' },
-    filetype = 'cpp',
     autoload = true,
     verbose = false,
   }, options or {})
