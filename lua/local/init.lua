@@ -41,7 +41,7 @@ function M.setup(options)
     root = { '.git' },
     file = { '.local.lua', '.local.vim' },
     autoload = true,
-    verbose = true,
+    verbose = false,
   }, options or {})
   vim.g.did_setup_local = true
 end
