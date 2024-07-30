@@ -10,7 +10,7 @@ function M.load()
 
       local matches = vim.fs.find(M.options.file, {
         path = rootdir,
-        stop = bufdir,
+        stop = bufname,
         upward = false,
         type = 'file',
         limit = math.huge,
@@ -20,8 +20,9 @@ function M.load()
         if M.options.verbose then
           vim.notify("local.nvim: trying to source " .. file, vim.log.levels.DEBUG)
         end
+        local status, error = pcall(vim.cmd.source, file)
         if not pcall(vim.cmd.source, file) then
-          vim.notify("local.nvim: failed to source " .. file, vim.log.levels.ERROR)
+          vim.notify("local.nvim: failed to source " .. file .. ': ' .. error, vim.log.levels.ERROR)
         end
       end
     end
@@ -40,7 +41,7 @@ function M.setup(options)
     root = { '.git' },
     file = { '.local.lua', '.local.vim' },
     autoload = true,
-    verbose = false,
+    verbose = true,
   }, options or {})
   vim.g.did_setup_local = true
 end
