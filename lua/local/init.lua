@@ -2,8 +2,14 @@ local M = {}
 
 function M.load()
   vim.api.nvim_create_autocmd('BufEnter', {
+    group = vim.api.nvim_create_augroup("Local", { clear = true }),
     callback = function()
       local bufnr = vim.api.nvim_get_current_buf()
+
+      if (not vim.bo[bufnr].buflisted) or #vim.bo[bufnr].buftype > 0 then
+        return
+      end
+
       local bufname = vim.api.nvim_buf_get_name(bufnr)
       local bufdir = vim.fs.dirname(bufname)
       local rootdir = vim.fs.root(bufdir, M.options.root) or bufdir
